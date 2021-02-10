@@ -1,7 +1,14 @@
-name: env_name
+name: pytorch
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
-  - python=3.8
-  - pip:
+  - torchaudio
+  - torchvision
+  - pytorch
+  - cudatoolkit=11.0
+  - ipykernel
+  - tqdm
+  - matplotlib
+  - h5py
+  - imageio
