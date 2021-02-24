@@ -12,3 +12,4 @@ dependencies:
   - matplotlib
   - h5py
   - imageio
+  - simpleitk
