@@ -141,11 +141,11 @@ class CtScan:
                 end_ndx = int(width_irc[axis])
 
             if end_ndx > self.hu_arr.shape[axis]:
-                log.warning(
-                    "Crop outside of CT array: {} {}, center:{} shape:{} width:{}".format(
-                        self.series_uid, center_xyz, center_irc, self.hu_arr.shape, width_irc
-                    )
-                )
+                # log.warning(
+                #     "Crop outside of CT array: {} {}, center:{} shape:{} width:{}".format(
+                #         self.series_uid, center_xyz, center_irc, self.hu_arr.shape, width_irc
+                #     )
+                # )
                 end_ndx = self.hu_arr.shape[axis]
                 start_ndx = int(self.hu_arr.shape[axis] - width_irc[axis])
 

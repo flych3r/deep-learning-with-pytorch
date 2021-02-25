@@ -1,6 +1,10 @@
 {
     "python.pythonPath": "/home/flycher/anaconda3/envs/pytorch/bin/python",
     "cSpell.words": [
+        "conv",
+        "inplace",
+        "kaiming",
+        "optim",
         "sitk",
         "unsqueeze"
     ]
