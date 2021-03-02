@@ -1,6 +1,7 @@
 {
     "python.pythonPath": "/home/flycher/anaconda3/envs/pytorch/bin/python",
     "cSpell.words": [
+        "asyncio",
         "clim",
         "cmap",
         "conv",
@@ -9,11 +10,13 @@
         "inplace",
         "kaiming",
         "nargs",
+        "noqa",
         "numpy",
         "optim",
         "prhist",
         "pyplot",
         "rsplit",
+        "sanic",
         "sitk",
         "subm",
         "tolist",

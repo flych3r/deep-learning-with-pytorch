@@ -13,5 +13,6 @@ dependencies:
   - h5py
   - imageio
   - tensorboard
+  - sanic
   - pip:
     - simpleitk
