@@ -32,7 +32,7 @@ def show_candidate(series_uid: Text, batch_ndx: int = None, **kwargs):
         if pos_list:
             batch_ndx = pos_list[0]
         else:
-            log.warn("Warning: no positive samples found; using first negative sample.")
+            log.warn('Warning: no positive samples found; using first negative sample.')
             batch_ndx = 0
 
     ct = CtScan(series_uid)

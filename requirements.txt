@@ -6,3 +6,4 @@ tqdm
 matplotlib
 h5py
 simpleitk
+tensorboard

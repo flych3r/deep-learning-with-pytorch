@@ -16,8 +16,8 @@ def prhist(ary, prefix_str=None, **kwargs):
 
     count_ary, bins_ary = np.histogram(ary, **kwargs)
     for i in range(count_ary.shape[0]):
-        print("{}{:-8.2f}".format(prefix_str, bins_ary[i]), "{:-10}".format(count_ary[i]))
-    print("{}{:-8.2f}".format(prefix_str, bins_ary[-1]))
+        print('{}{:-8.2f}'.format(prefix_str, bins_ary[i]), '{:-10}'.format(count_ary[i]))
+    print('{}{:-8.2f}'.format(prefix_str, bins_ary[-1]))
 
 
 def enumerate_with_estimate(
@@ -84,7 +84,7 @@ def enumerate_with_estimate(
     while print_ndx < start_ndx * backoff:
         print_ndx *= backoff
 
-    log.warning("{} ----/{}, starting".format(
+    log.warning('{} ----/{}, starting'.format(
         desc_str,
         iter_len,
     ))
@@ -100,7 +100,7 @@ def enumerate_with_estimate(
             done_dt = datetime.datetime.fromtimestamp(start_ts + duration_sec)
             done_td = datetime.timedelta(seconds=duration_sec)
 
-            log.info("{} {:-4}/{}, done at {}, {}".format(
+            log.info('{} {:-4}/{}, done at {}, {}'.format(
                 desc_str,
                 current_ndx,
                 iter_len,
@@ -113,7 +113,7 @@ def enumerate_with_estimate(
         if current_ndx + 1 == start_ndx:
             start_ts = time.time()
 
-    log.warning("{} ----/{}, done at {}".format(
+    log.warning('{} ----/{}, done at {}'.format(
         desc_str,
         iter_len,
         str(datetime.datetime.now()).rsplit('.', 1)[0],

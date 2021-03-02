@@ -2,10 +2,16 @@
     "python.pythonPath": "/home/flycher/anaconda3/envs/pytorch/bin/python",
     "cSpell.words": [
         "conv",
+        "dtype",
         "inplace",
         "kaiming",
+        "nargs",
+        "numpy",
         "optim",
         "sitk",
+        "tolist",
         "unsqueeze"
-    ]
+    ],
+    "python.linting.enabled": false,
+    "python.linting.flake8Enabled": true
 }

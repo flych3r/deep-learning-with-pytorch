@@ -12,4 +12,6 @@ dependencies:
   - matplotlib
   - h5py
   - imageio
-  - simpleitk
+  - tensorboard
+  - pip:
+    - simpleitk
