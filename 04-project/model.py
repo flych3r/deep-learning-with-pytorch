@@ -52,7 +52,7 @@ class LunaModel(nn.Module):
 
     def _init_weights(self):
         for m in self.modules():
-            if type(m) in {nn.Linear, nn.Conv3d,}:
+            if type(m) in {nn.Linear, nn.Conv3d}:
                 nn.init.kaiming_normal_(
                     m.weight.data, a=0, mode='fan_out', nonlinearity='relu',
                 )
@@ -90,7 +90,7 @@ class UNetWrapper(nn.Module):
                 if m.bias is not None:
                     fan_in, fan_out = \
                         nn.init._calculate_fan_in_and_fan_out(m.weight.data)
-                    bound = 1 / math.sqrt(fan_out)
+                    bound = 1 / torch.sqrt(fan_out)
                     nn.init.normal_(m.bias, -bound, bound)
 
     def forward(self, input_batch):
@@ -98,11 +98,3 @@ class UNetWrapper(nn.Module):
         un_output = self.unet(bn_output)
         fn_output = self.final(un_output)
         return fn_output
-
-
-class Augmentation(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self):
-        pass

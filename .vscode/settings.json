@@ -1,17 +1,29 @@
 {
     "python.pythonPath": "/home/flycher/anaconda3/envs/pytorch/bin/python",
     "cSpell.words": [
+        "clim",
+        "cmap",
         "conv",
         "dtype",
+        "imshow",
         "inplace",
         "kaiming",
         "nargs",
         "numpy",
         "optim",
+        "prhist",
+        "pyplot",
+        "rsplit",
         "sitk",
+        "subm",
         "tolist",
-        "unsqueeze"
+        "unet",
+        "unsqueeze",
+        "upconv",
+        "xticklabels",
+        "yaxis",
+        "yticklabels"
     ],
-    "python.linting.enabled": false,
+    "python.linting.enabled": true,
     "python.linting.flake8Enabled": true
 }

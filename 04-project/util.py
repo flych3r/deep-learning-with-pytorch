@@ -16,7 +16,10 @@ def prhist(ary, prefix_str=None, **kwargs):
 
     count_ary, bins_ary = np.histogram(ary, **kwargs)
     for i in range(count_ary.shape[0]):
-        print('{}{:-8.2f}'.format(prefix_str, bins_ary[i]), '{:-10}'.format(count_ary[i]))
+        print(
+            '{}{:-8.2f}'.format(prefix_str, bins_ary[i]),
+            '{:-10}'.format(count_ary[i])
+        )
     print('{}{:-8.2f}'.format(prefix_str, bins_ary[-1]))
 
 
@@ -55,7 +58,7 @@ def enumerate_with_estimate(
     :param print_ndx: determines which loop interation that the timing
         logging will start on. The intent is that we don't start
         logging until we've given the loop a few iterations to let the
-        average time-per-iteration a chance to stablize a bit. We
+        average time-per-iteration a chance to stabilize a bit. We
         require that `print_ndx` not be less than `start_ndx` times
         `backoff`, since `start_ndx` greater than `0` implies that the
         early N iterations are unstable from a timing perspective.
@@ -92,10 +95,11 @@ def enumerate_with_estimate(
     for (current_ndx, item) in enumerate(iter):
         yield (current_ndx, item)
         if current_ndx == print_ndx:
-            duration_sec = ((time.time() - start_ts)
-                            / (current_ndx - start_ndx + 1)
-                            * (iter_len-start_ndx)
-                            )
+            duration_sec = (
+                (time.time() - start_ts)
+                / (current_ndx - start_ndx + 1)
+                * (iter_len - start_ndx)
+            )
 
             done_dt = datetime.datetime.fromtimestamp(start_ts + duration_sec)
             done_td = datetime.timedelta(seconds=duration_sec)

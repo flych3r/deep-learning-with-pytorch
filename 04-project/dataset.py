@@ -7,7 +7,7 @@ import os
 import random
 from collections import defaultdict, namedtuple
 from pathlib import Path
-from typing import List, Optional, Text, Tuple
+from typing import Dict, List, Optional, Text, Tuple
 
 import numpy as np
 import SimpleITK as sitk
@@ -124,7 +124,7 @@ class CtScan:
 
         slice_list = []
         for axis, center_val in enumerate(center_irc):
-            start_ndx = int(round(center_val - width_irc[axis]/2))
+            start_ndx = int(round(center_val - width_irc[axis] / 2))
             end_ndx = int(start_ndx + width_irc[axis])
 
             if not center_val >= 0 and center_val < self.hu_arr.shape[axis]:
@@ -133,21 +133,24 @@ class CtScan:
                     self.vx_size_xyz, center_irc, axis
                 ]))
 
+            warn = 'Crop outside of CT array: {} {}, center:{} shape:{} width:{}'
             if start_ndx < 0:
                 log.warning(
-                    'Crop outside of CT array: {} {}, center:{} shape:{} width:{}'.format(
-                        self.series_uid, center_xyz, center_irc, self.hu_arr.shape, width_irc
+                    warn.format(
+                        self.series_uid, center_xyz,
+                        center_irc, self.hu_arr.shape, width_irc
                     )
                 )
                 start_ndx = 0
                 end_ndx = int(width_irc[axis])
 
             if end_ndx > self.hu_arr.shape[axis]:
-                # log.warning(
-                #     "Crop outside of CT array: {} {}, center:{} shape:{} width:{}".format(
-                #         self.series_uid, center_xyz, center_irc, self.hu_arr.shape, width_irc
-                #     )
-                # )
+                log.warning(
+                    warn.format(
+                        self.series_uid, center_xyz,
+                        center_irc, self.hu_arr.shape, width_irc
+                    )
+                )
                 end_ndx = self.hu_arr.shape[axis]
                 start_ndx = int(self.hu_arr.shape[axis] - width_irc[axis])
 
@@ -175,12 +178,16 @@ def get_CtScan_raw_candidate(
 
 
 def get_CtScan_augmented_candidate(
-    augmentation_dict,
-    series_uid, center_xyz, width_irc,
-    use_cache=True
-):
+    augmentation_dict: Dict,
+    series_uid: Text,
+    center_xyz: Tuple[float, float, float],
+    width_irc: Tuple[float, float, float],
+    use_cache: Optional[bool] = True
+) -> Tuple[array, irc_tuple]:
     if use_cache:
-        ct_chunk, center_irc = get_CtScan_raw_candidate(series_uid, center_xyz, width_irc)
+        ct_chunk, center_irc = get_CtScan_raw_candidate(
+            series_uid, center_xyz, width_irc
+        )
     else:
         ct = get_CtScan(series_uid)
         ct_chunk, center_irc = ct.getRawCandidate(center_xyz, width_irc)
@@ -191,17 +198,17 @@ def get_CtScan_augmented_candidate(
     for i in range(3):
         if 'flip' in augmentation_dict:
             if random.random() > 0.5:
-                transform_tensor[i,i] *= -1
+                transform_tensor[i, i] *= -1
 
         if 'offset' in augmentation_dict:
             offset_float = augmentation_dict['offset']
             random_float = (random.random() * 2 - 1)
-            transform_tensor[i,3] = offset_float * random_float
+            transform_tensor[i, 3] = offset_float * random_float
 
         if 'scale' in augmentation_dict:
             scale_float = augmentation_dict['scale']
             random_float = (random.random() * 2 - 1)
-            transform_tensor[i,i] *= 1.0 + scale_float * random_float
+            transform_tensor[i, i] *= 1.0 + scale_float * random_float
 
     if 'rotate' in augmentation_dict:
         angle_rad = random.random() * np.pi * 2
@@ -218,17 +225,17 @@ def get_CtScan_augmented_candidate(
         transform_tensor @= rotation_t
 
     affine_tensor = F.affine_grid(
-            transform_tensor[:3].unsqueeze(0).to(torch.float32),
-            ct_tensor.size(),
-            align_corners=False,
-        )
+        transform_tensor[:3].unsqueeze(0).to(torch.float32),
+        ct_tensor.size(),
+        align_corners=False,
+    )
 
     augmented_chunk = F.grid_sample(
-            ct_tensor,
-            affine_tensor,
-            padding_mode='border',
-            align_corners=False,
-        ).to('cpu')
+        ct_tensor,
+        affine_tensor,
+        padding_mode='border',
+        align_corners=False,
+    ).to('cpu')
 
     if 'noise' in augmentation_dict:
         noise_tensor = torch.randn_like(augmented_chunk)
@@ -284,7 +291,6 @@ class LunaDataset(Dataset):
             pass
         else:
             raise Exception('Unknown sort: ' + repr(sort_by))
-
 
         self.neg_list = [
             nt for nt in self.candidate_info_list if nt.is_nodule
@@ -354,10 +360,9 @@ class LunaDataset(Dataset):
             candidate_tensor = candidate_tensor.unsqueeze(0)
 
         pos_tensor = torch.tensor([
-                not candidate_info_tup.is_nodule,
-                candidate_info_tup.is_nodule
-            ], dtype=torch.long
-        )
+            not candidate_info_tup.is_nodule,
+            candidate_info_tup.is_nodule
+        ], dtype=torch.long)
 
         return (
             candidate_tensor,

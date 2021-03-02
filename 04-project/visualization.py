@@ -6,7 +6,7 @@ from dataset import CtScan, LunaDataset, candidate_info_tuple
 
 log = logging.getLogger(__name__)
 
-c_lim = (-1000.0, 300)
+clim = (-1000.0, 300)
 
 
 def find_positive_samples(limit: int = 100) -> List[candidate_info_tuple]:
@@ -51,40 +51,40 @@ def show_candidate(series_uid: Text, batch_ndx: int = None, **kwargs):
     subplot.set_title('index {}'.format(int(center_irc[0])), fontsize=30)
     for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
         label.set_fontsize(20)
-    plt.imshow(ct.hu_arr[int(center_irc[0])], clim=c_lim, cmap='gray')
+    plt.imshow(ct.hu_arr[int(center_irc[0])], clim=clim, cmap='gray')
 
     subplot = fig.add_subplot(len(group_list) + 2, 3, 2)
     subplot.set_title('row {}'.format(int(center_irc[1])), fontsize=30)
     for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
         label.set_fontsize(20)
-    plt.imshow(ct.hu_arr[:,int(center_irc[1])], clim=c_lim, cmap='gray')
+    plt.imshow(ct.hu_arr[:, int(center_irc[1])], clim=clim, cmap='gray')
     plt.gca().invert_yaxis()
 
     subplot = fig.add_subplot(len(group_list) + 2, 3, 3)
     subplot.set_title('col {}'.format(int(center_irc[2])), fontsize=30)
     for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
         label.set_fontsize(20)
-    plt.imshow(ct.hu_arr[:,:,int(center_irc[2])], clim=c_lim, cmap='gray')
+    plt.imshow(ct.hu_arr[:, :, int(center_irc[2])], clim=clim, cmap='gray')
     plt.gca().invert_yaxis()
 
     subplot = fig.add_subplot(len(group_list) + 2, 3, 4)
     subplot.set_title('index {}'.format(int(center_irc[0])), fontsize=30)
     for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
         label.set_fontsize(20)
-    plt.imshow(ct_arr[ct_arr.shape[0]//2], clim=c_lim, cmap='gray')
+    plt.imshow(ct_arr[ct_arr.shape[0] // 2], clim=clim, cmap='gray')
 
     subplot = fig.add_subplot(len(group_list) + 2, 3, 5)
     subplot.set_title('row {}'.format(int(center_irc[1])), fontsize=30)
     for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
         label.set_fontsize(20)
-    plt.imshow(ct_arr[:,ct_arr.shape[1]//2], clim=c_lim, cmap='gray')
+    plt.imshow(ct_arr[:, ct_arr.shape[1] // 2], clim=clim, cmap='gray')
     plt.gca().invert_yaxis()
 
     subplot = fig.add_subplot(len(group_list) + 2, 3, 6)
     subplot.set_title('col {}'.format(int(center_irc[2])), fontsize=30)
     for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
         label.set_fontsize(20)
-    plt.imshow(ct_arr[:,:,ct_arr.shape[2]//2], clim=c_lim, cmap='gray')
+    plt.imshow(ct_arr[:, :, ct_arr.shape[2] // 2], clim=clim, cmap='gray')
     plt.gca().invert_yaxis()
 
     for row, index_list in enumerate(group_list):
@@ -93,7 +93,7 @@ def show_candidate(series_uid: Text, batch_ndx: int = None, **kwargs):
             subplot.set_title('slice {}'.format(index), fontsize=30)
             for label in (subplot.get_xticklabels() + subplot.get_yticklabels()):
                 label.set_fontsize(20)
-            plt.imshow(ct_arr[index], clim=c_lim, cmap='gray')
+            plt.imshow(ct_arr[index], clim=clim, cmap='gray')
 
     plt.show()
     print(series_uid, batch_ndx, bool(pos_t[0]), pos_list)

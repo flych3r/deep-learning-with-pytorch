@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -18,10 +19,10 @@ from util import enumerate_with_estimate
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-METRICS_LABEL_NDX=0
-METRICS_PRED_NDX=1
-METRICS_LOSS_NDX=2
-METRICS_SIZE=3
+METRICS_LABEL_NDX = 0
+METRICS_PRED_NDX = 1
+METRICS_LOSS_NDX = 2
+METRICS_SIZE = 3
 
 
 class LunaTrainingApp:
@@ -30,61 +31,90 @@ class LunaTrainingApp:
             sys_argv = sys.argv[1:]
 
         parser = argparse.ArgumentParser()
-        parser.add_argument('--num-workers',
+        parser.add_argument(
+            '--num-workers',
             help='Number of worker processes for background data loading',
             default=os.cpu_count(),
             type=int,
         )
-        parser.add_argument('--batch-size',
+        parser.add_argument(
+            '--batch-size',
             help='Batch size to use for training',
             default=32,
             type=int,
         )
-        parser.add_argument('--epochs',
+        parser.add_argument(
+            '--epochs',
             help='Number of epochs to train for',
             default=1,
             type=int,
         )
-        parser.add_argument('--augmented',
+        parser.add_argument(
+            '--validation_cadence',
+            help='Number of epochs to wait before starting validation',
+            default=1,
+            type=int,
+        )
+        parser.add_argument(
+            '--augmented',
             help='Augment the training data.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('--augment-flip',
-            help='Augment the training data by randomly flipping the data left-right, up-down, and front-back.',
+        parser.add_argument(
+            '--augment-flip',
+            help='Randomly flips the data left-right, up-down, and front-back.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('--augment-offset',
-            help='Augment the training data by randomly offsetting the data slightly along the X and Y axes.',
+        parser.add_argument(
+            '--augment-offset',
+            help='Randomly offsets the data slightly along the X and Y axes.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('--augment-scale',
-            help='Augment the training data by randomly increasing or decreasing the size of the candidate.',
+        parser.add_argument(
+            '--augment-scale',
+            help='Randomly increases or decreases the size of the candidate.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('--augment-rotate',
-            help='Augment the training data by randomly rotating the data around the head-foot axis.',
+        parser.add_argument(
+            '--augment-rotate',
+            help='Randomly rotates the data around the head-foot axis.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('--augment-noise',
-            help='Augment the training data by randomly adding noise to the data.',
+        parser.add_argument(
+            '--augment-noise',
+            help='Randomly adds noise to the data.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('--tb-prefix',
-            default='luna',
-            help='Data prefix to use for Tensorboard run. Defaults to chapter.',
-        )
-        parser.add_argument('--balanced',
+        parser.add_argument(
+            '--balanced',
             help='Balance the training data to half positive, half negative.',
             action='store_true',
             default=False,
         )
-        parser.add_argument('comment',
+        parser.add_argument(
+            '--finetune',
+            help='Start finetuning from this model.',
+            default='',
+        )
+        parser.add_argument(
+            '--finetune-depth',
+            help='Number of blocks (counted from the head) to include in finetuning',
+            type=int,
+            default=1,
+        )
+        parser.add_argument(
+            '--tb-prefix',
+            default='luna',
+            help='Data prefix to use for Tensorboard run. Defaults to chapter.',
+        )
+        parser.add_argument(
+            'comment',
             help='Comment suffix for Tensorboard run.',
             nargs='?',
             default='',
@@ -108,6 +138,7 @@ class LunaTrainingApp:
         self.trn_writer = None
         self.val_writer = None
         self.total_training_samples = 0
+        self.validation_cadence = self.cli_args.validation_cadence
 
         self.use_cuda = torch.cuda.is_available()
         self.device = torch.device('cuda' if self.use_cuda else 'cpu')
@@ -120,7 +151,6 @@ class LunaTrainingApp:
         val_dl = self.init_data_loader(is_val_set=True)
 
         best_score = 0.0
-        self.validation_cadence = 5
         for epoch_ndx in range(1, self.cli_args.epochs + 1):
             log.info('Epoch {} of {}, {}/{} batches of size {}*{}'.format(
                 epoch_ndx,
@@ -145,6 +175,28 @@ class LunaTrainingApp:
 
     def init_model(self):
         model = LunaModel()
+        if self.cli_args.finetune:
+            d = torch.load(self.cli_args.finetune, map_location='cpu')
+            model_blocks = [
+                n for n, subm in model.named_children()
+                if len(list(subm.parameters())) > 0
+            ]
+            finetune_blocks = model_blocks[-self.cli_args.finetune_depth:]
+            log.info(
+                'Finetuning from {}, blocks {}'.format(
+                    self.cli_args.finetune, ' '.join(finetune_blocks)
+                )
+            )
+            model.load_state_dict(
+                {
+                    k: v for k, v in d['model_state'].items()
+                    if k.split('.')[0] not in model_blocks[-1]
+                },
+                strict=False,
+            )
+            for n, p in model.named_parameters():
+                if n.split('.')[0] not in finetune_blocks:
+                    p.requires_grad_(False)
         if self.use_cuda:
             log.info('Using CUDA; {} devices.'.format(torch.cuda.device_count()))
             if torch.cuda.device_count() > 1:
@@ -240,13 +292,13 @@ class LunaTrainingApp:
         loss_func = nn.CrossEntropyLoss(reduction='none')
         loss_g = loss_func(
             logits_g,
-            label_g[:,1],
+            label_g[:, 1],
         )
         start_ndx = batch_ndx * batch_size
         end_ndx = start_ndx + label_t.size(0)
 
-        metrics_g[METRICS_LABEL_NDX, start_ndx:end_ndx] = label_g[:,1].detach()
-        metrics_g[METRICS_PRED_NDX, start_ndx:end_ndx] = probability_g[:,1].detach()
+        metrics_g[METRICS_LABEL_NDX, start_ndx:end_ndx] = label_g[:, 1].detach()
+        metrics_g[METRICS_PRED_NDX, start_ndx:end_ndx] = probability_g[:, 1].detach()
         metrics_g[METRICS_LOSS_NDX, start_ndx:end_ndx] = loss_g.detach()
 
         return loss_g.mean()
@@ -256,7 +308,7 @@ class LunaTrainingApp:
         epoch_ndx,
         mode_str,
         metrics_t,
-        classificationThreshold=0.5,
+        classification_threshold=0.5,
     ):
         self.init_tensorboard_writers()
         log.info('E{} {}'.format(
@@ -264,8 +316,8 @@ class LunaTrainingApp:
             type(self).__name__,
         ))
 
-        neg_label_mask = metrics_t[METRICS_LABEL_NDX] <= classificationThreshold
-        neg_pred_mask = metrics_t[METRICS_PRED_NDX] <= classificationThreshold
+        neg_label_mask = metrics_t[METRICS_LABEL_NDX] <= classification_threshold
+        neg_pred_mask = metrics_t[METRICS_PRED_NDX] <= classification_threshold
 
         pos_label_mask = ~neg_label_mask
         pos_pred_mask = ~neg_pred_mask
@@ -289,44 +341,28 @@ class LunaTrainingApp:
         )
         metrics_dict['correct/neg'] = true_neg_count / np.float32(neg_count) * 100
         metrics_dict['correct/pos'] = true_pos_count / np.float32(pos_count) * 100
+
         precision = metrics_dict['pr/precision'] = \
             true_pos_count / np.float32(true_pos_count + false_pos_count)
         recall = metrics_dict['pr/recall'] = \
             true_pos_count / np.float32(true_pos_count + false_neg_count)
         metrics_dict['pr/f1_score'] = 2 * (precision * recall) / (precision + recall)
 
-        log.info(
-            ('E{} {:8} {loss/all:.4f} loss, '
-                + '{correct/all:-5.1f}% correct, '
-                + '{pr/precision:.4f} precision, '
-                + '{pr/recall:.4f} recall, '
-                + '{pr/f1_score:.4f} f1 score'
-            ).format(
-            epoch_ndx,
-            mode_str,
-            **metrics_dict,
-            )
-        )
+        threshold = torch.linspace(1, 0)
+        tpr = (metrics_t[None, METRICS_PRED_NDX, pos_label_mask] >= threshold[:, None])
+        tpr = tpr.sum(1).float() / pos_count
+        fpr = (metrics_t[None, METRICS_PRED_NDX, neg_label_mask] >= threshold[:, None])
+        fpr = fpr.sum(1).float() / neg_count
 
         log.info(
-            ('E{} {:8} {loss/neg:.4f} loss, '
-                 + '{correct/neg:-5.1f}% correct ({neg_correct:} of {neg_count:})'
-            ).format(
+            'E{} {:8} {loss/all:.4f} loss, '
+            '{correct/all:-5.1f}% correct, '
+            '{pr/precision:.4f} precision, '
+            '{pr/recall:.4f} recall, '
+            '{pr/f1_score:.4f} f1 score'
+            .format(
                 epoch_ndx,
-                mode_str + '_neg',
-                neg_correct=true_neg_count,
-                neg_count=neg_count,
-                **metrics_dict,
-            )
-        )
-        log.info(
-            ('E{} {:8} {loss/pos:.4f} loss, '
-                 + '{correct/pos:-5.1f}% correct ({pos_correct:} of {pos_count:})'
-            ).format(
-                epoch_ndx,
-                mode_str + '_pos',
-                pos_correct=true_pos_count,
-                pos_count=pos_count,
+                mode_str,
                 **metrics_dict,
             )
         )
@@ -336,6 +372,10 @@ class LunaTrainingApp:
         for key, value in metrics_dict.items():
             writer.add_scalar(key, value, self.total_training_samples)
 
+        fig = plt.figure()
+        plt.plot(fpr, tpr)
+        writer.add_figure('roc', fig, self.total_training_samples)
+
         writer.add_pr_curve(
             'pr',
             metrics_t[METRICS_LABEL_NDX],
@@ -343,7 +383,7 @@ class LunaTrainingApp:
             self.total_training_samples,
         )
 
-        bins = [x/50.0 for x in range(51)]
+        bins = [x / 50.0 for x in range(51)]
 
         neg_hist_mask = neg_label_mask & (metrics_t[METRICS_PRED_NDX] > 0.01)
         pos_hist_mask = pos_label_mask & (metrics_t[METRICS_PRED_NDX] < 0.99)
@@ -374,7 +414,7 @@ class LunaTrainingApp:
                 type_str,
                 self.time_str,
                 self.cli_args.comment,
-                self.totalTrainingSamples_count,
+                self.total_training_samples,
             )
         )
 

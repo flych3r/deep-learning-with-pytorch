@@ -31,8 +31,10 @@ from torch import nn
 
 
 class UNet(nn.Module):
-    def __init__(self, in_channels=1, n_classes=2, depth=5, wf=6, padding=False,
-                 batch_norm=False, up_mode='upconv'):
+    def __init__(
+        self, in_channels=1, n_classes=2, depth=5, wf=6,
+        padding=False, batch_norm=False, up_mode='upconv'
+    ):
         """
         Implementation of
         U-Net: Convolutional Networks for Biomedical Image Segmentation
@@ -64,15 +66,17 @@ class UNet(nn.Module):
         prev_channels = in_channels
         self.down_path = nn.ModuleList()
         for i in range(depth):
-            self.down_path.append(UNetConvBlock(prev_channels, 2**(wf+i),
-                                                padding, batch_norm))
-            prev_channels = 2**(wf+i)
+            self.down_path.append(
+                UNetConvBlock(prev_channels, 2 ** (wf + i), padding, batch_norm)
+            )
+            prev_channels = 2**(wf + i)
 
         self.up_path = nn.ModuleList()
         for i in reversed(range(depth - 1)):
-            self.up_path.append(UNetUpBlock(prev_channels, 2**(wf+i), up_mode,
-                                            padding, batch_norm))
-            prev_channels = 2**(wf+i)
+            self.up_path.append(
+                UNetUpBlock(prev_channels, 2 ** (wf + i), up_mode, padding, batch_norm)
+            )
+            prev_channels = 2 ** (wf + i)
 
         self.last = nn.Conv2d(prev_channels, n_classes, kernel_size=1)
 
@@ -80,12 +84,12 @@ class UNet(nn.Module):
         blocks = []
         for i, down in enumerate(self.down_path):
             x = down(x)
-            if i != len(self.down_path)-1:
+            if i != len(self.down_path) - 1:
                 blocks.append(x)
                 x = F.avg_pool2d(x, 2)
 
         for i, up in enumerate(self.up_path):
-            x = up(x, blocks[-i-1])
+            x = up(x, blocks[-i - 1])
 
         return self.last(x)
 
@@ -95,17 +99,17 @@ class UNetConvBlock(nn.Module):
         super(UNetConvBlock, self).__init__()
         block = []
 
-        block.append(nn.Conv2d(in_size, out_size, kernel_size=3,
-                               padding=int(padding)))
+        block.append(
+            nn.Conv2d(in_size, out_size, kernel_size=3, padding=int(padding))
+        )
         block.append(nn.ReLU())
-        # block.append(nn.LeakyReLU())
         if batch_norm:
             block.append(nn.BatchNorm2d(out_size))
 
-        block.append(nn.Conv2d(out_size, out_size, kernel_size=3,
-                               padding=int(padding)))
+        block.append(
+            nn.Conv2d(out_size, out_size, kernel_size=3, padding=int(padding))
+        )
         block.append(nn.ReLU())
-        # block.append(nn.LeakyReLU())
         if batch_norm:
             block.append(nn.BatchNorm2d(out_size))
 
@@ -120,19 +124,24 @@ class UNetUpBlock(nn.Module):
     def __init__(self, in_size, out_size, up_mode, padding, batch_norm):
         super(UNetUpBlock, self).__init__()
         if up_mode == 'upconv':
-            self.up = nn.ConvTranspose2d(in_size, out_size, kernel_size=2,
-                                         stride=2)
+            self.up = nn.ConvTranspose2d(
+                in_size, out_size, kernel_size=2, stride=2
+            )
         elif up_mode == 'upsample':
-            self.up = nn.Sequential(nn.Upsample(mode='bilinear', scale_factor=2),
-                                    nn.Conv2d(in_size, out_size, kernel_size=1))
+            self.up = nn.Sequential(
+                nn.Upsample(mode='bilinear', scale_factor=2),
+                nn.Conv2d(in_size, out_size, kernel_size=1)
+            )
 
         self.conv_block = UNetConvBlock(in_size, out_size, padding, batch_norm)
 
     def center_crop(self, layer, target_size):
         _, _, layer_height, layer_width = layer.size()
-        diff_y = (layer_height - target_size[0]) // 2
-        diff_x = (layer_width - target_size[1]) // 2
-        return layer[:, :, diff_y:(diff_y + target_size[0]), diff_x:(diff_x + target_size[1])]
+        diff_yl = (layer_height - target_size[0]) // 2
+        diff_xl = (layer_width - target_size[1]) // 2
+        diff_yh = (diff_yl + target_size[0])
+        diff_xh = (diff_xl + target_size[1])
+        return layer[:, :, diff_yl:diff_yh, diff_xl:diff_xh]
 
     def forward(self, x, bridge):
         up = self.up(x)
