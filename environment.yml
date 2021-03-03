@@ -6,6 +6,7 @@ dependencies:
   - torchaudio
   - torchvision
   - pytorch
+  - pytorch-lightning
   - cudatoolkit=11.0
   - ipykernel
   - tqdm
