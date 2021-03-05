@@ -8,6 +8,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from torch.nn import functional as F
+import matplotlib.pyplot as plt
 
 
 class MNISTClassifier(nn.Module):
@@ -51,18 +52,23 @@ class LightningMNISTClassifier(pl.LightningModule):
             backbone = MNISTClassifier()
         self.backbone = backbone
         self.lr = lr
+        self.hparams = {
+            'learning_rate': self.lr
+        }
 
-    def forward(self, x: torch.tensor):
+    def forward(self, x: torch.tensor) -> torch.tensor:
         return self.backbone(x)
 
-    def cross_entropy_loss(self, logits: torch.tensor, labels: torch.tensor):
+    def cross_entropy_loss(
+        self, logits: torch.tensor, labels: torch.tensor
+    ) -> torch.tensor:
         return F.nll_loss(logits, labels)
 
     def training_step(
         self,
         batch: torch.Tensor | Tuple[torch.Tensor] | List[torch.Tensor],
         batch_idx: int
-    ):
+    ) -> torch.tensor:
         x, y = batch
         logits = self(x)
         loss = self.cross_entropy_loss(logits, y)
@@ -84,7 +90,31 @@ class LightningMNISTClassifier(pl.LightningModule):
         acc = accuracy(y_hat, y)
         self.log('val_loss', loss, prog_bar=True)
         self.log('val_acc', acc, prog_bar=True)
-        return loss
+        if batch_idx == 0:
+            return (x, y, y_hat)
+
+    def validation_epoch_end(self, outputs):
+        x, y, y_hat = outputs[0]
+        x, y, y_hat = x.cpu(), y.cpu(), y_hat.cpu()
+        x, y, y_hat = x[:10], y[:10], y_hat[:10]
+        rows, cols = (2, 5)
+
+        fig, ax = plt.subplots(rows, cols, figsize=(12, 4))
+
+        i = 0
+        j = 0
+        for (img, label, predicted) in zip(x, y, y_hat):
+            ax[i][j].imshow(img[0, :, :], cmap='gray')
+            title = f'Label: {label} | Predicted: {predicted}'
+            ax[i][j].set_title(title)
+            ax[i][j].grid(False)
+            ax[i][j].set_xticklabels([])
+            ax[i][j].set_yticklabels([])
+            j += 1
+            if j >= cols:
+                i += 1
+                j = 0
+        self.logger.experiment.add_figure('example_images', fig, self.global_step)
 
     def test_step(
         self,
@@ -98,8 +128,7 @@ class LightningMNISTClassifier(pl.LightningModule):
         acc = accuracy(y_hat, y)
         self.log('test_loss', loss)
         self.log('test_acc', acc, prog_bar=True)
-        return loss
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> optim.Optimizer:
         optimizer = optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
