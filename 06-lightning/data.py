@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
+
 PATH = './data'
 N_WORKERS = os.cpu_count()
 

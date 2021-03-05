@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import List, Tuple
 
 import pytorch_lightning as pl
+from pytorch_lightning.metrics.functional import accuracy
 import torch
-import torch.optim as optimizer
-from torch import nn
+import torch.optim as optim
+import torch.nn as nn
 from torch.nn import functional as F
 
 
@@ -15,9 +16,9 @@ class MNISTClassifier(nn.Module):
         super(MNISTClassifier, self).__init__()
 
         # mnist images are (1, 28, 28) (channels, width, height)
-        self.layer_1 = torch.nn.Linear(28 * 28, 128)
-        self.layer_2 = torch.nn.Linear(128, 256)
-        self.layer_3 = torch.nn.Linear(256, 10)
+        self.layer_1 = nn.Linear(28 * 28, 128)
+        self.layer_2 = nn.Linear(128, 256)
+        self.layer_3 = nn.Linear(256, 10)
 
     def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -27,17 +28,17 @@ class MNISTClassifier(nn.Module):
 
         # layer 1
         x = self.layer_1(x)
-        x = torch.relu(x)
+        x = F.relu(x)
 
         # layer 2
         x = self.layer_2(x)
-        x = torch.relu(x)
+        x = F.relu(x)
 
         # layer 3
         x = self.layer_3(x)
 
         # probability distribution over labels
-        x = torch.log_softmax(x, dim=1)
+        x = F.log_softmax(x, dim=1)
 
         return x
 
@@ -63,9 +64,12 @@ class LightningMNISTClassifier(pl.LightningModule):
         batch_idx: int
     ):
         x, y = batch
-        logits = self.backbone(x)
+        logits = self(x)
         loss = self.cross_entropy_loss(logits, y)
+        y_hat = torch.argmax(logits, dim=1)
+        acc = accuracy(y_hat, y)
         self.log('train_loss', loss)
+        self.log('train_acc', acc, prog_bar=True)
         return loss
 
     def validation_step(
@@ -74,9 +78,13 @@ class LightningMNISTClassifier(pl.LightningModule):
         batch_idx: int
     ):
         x, y = batch
-        logits = self.backbone(x)
+        logits = self(x)
         loss = self.cross_entropy_loss(logits, y)
-        self.log('val_loss', loss)
+        y_hat = torch.argmax(logits, dim=1)
+        acc = accuracy(y_hat, y)
+        self.log('val_loss', loss, prog_bar=True)
+        self.log('val_acc', acc, prog_bar=True)
+        return loss
 
     def test_step(
         self,
@@ -84,12 +92,14 @@ class LightningMNISTClassifier(pl.LightningModule):
         batch_idx: int
     ):
         x, y = batch
-        logits = self.backbone(x)
+        logits = self(x)
         loss = self.cross_entropy_loss(logits, y)
-        labels_hat = torch.argmax(logits, dim=1)
-        test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
-        self.log_dict({'test_loss': loss, 'test_acc': test_acc})
+        y_hat = torch.argmax(logits, dim=1)
+        acc = accuracy(y_hat, y)
+        self.log('test_loss', loss)
+        self.log('test_acc', acc, prog_bar=True)
+        return loss
 
     def configure_optimizers(self):
-        optim = optimizer.Adam(self.parameters(), lr=self.lr)
-        return optim
+        optimizer = optim.Adam(self.parameters(), lr=self.lr)
+        return optimizer
