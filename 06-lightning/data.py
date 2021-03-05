@@ -1,8 +1,9 @@
+import os
+
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 from torchvision.datasets import MNIST
-import os
 
 PATH = './data'
 N_WORKERS = os.cpu_count()
@@ -43,13 +44,15 @@ def mnist_dataloaders():
 
 class MNISTDataModule(pl.LightningDataModule):
 
-    def __init__(self, data_dir=PATH, batch_size=64, num_workers=N_WORKERS):
+    def __init__(
+        self, data_dir: str = PATH, batch_size: int = 64, num_workers: int = N_WORKERS
+    ):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
 
-    def setup(self, stage=None):
+    def setup(self, stage: str = None):
         # transforms for images
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -57,8 +60,12 @@ class MNISTDataModule(pl.LightningDataModule):
         ])
 
         # prepare transforms standard to MNIST
-        mnist_train = MNIST(self.data_dir, train=True, download=True, transform=transform)
-        mnist_test = MNIST(self.data_dir, train=False, download=True, transform=transform)
+        mnist_train = MNIST(
+            self.data_dir, train=True, download=True, transform=transform
+        )
+        mnist_test = MNIST(
+            self.data_dir, train=False, download=True, transform=transform
+        )
 
         self.mnist_train, self.mnist_val = random_split(mnist_train, [55000, 5000])
         self.mnist_test = mnist_test

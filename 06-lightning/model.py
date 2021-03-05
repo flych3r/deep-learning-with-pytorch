@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import List, Tuple
+
 import pytorch_lightning as pl
 import torch
 import torch.optim as optimizer
@@ -40,33 +44,45 @@ class MNISTClassifier(nn.Module):
 
 class LightningMNISTClassifier(pl.LightningModule):
 
-    def __init__(self, backbone=None, lr=1e-3):
+    def __init__(self, backbone: nn.Module = None, lr: float = 1e-3):
         super().__init__()
         if backbone is None:
             backbone = MNISTClassifier()
         self.backbone = backbone
         self.lr = lr
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor):
         return self.backbone(x)
 
-    def cross_entropy_loss(self, logits, labels):
+    def cross_entropy_loss(self, logits: torch.tensor, labels: torch.tensor):
         return F.nll_loss(logits, labels)
 
-    def training_step(self, batch, batch_idx):
+    def training_step(
+        self,
+        batch: torch.Tensor | Tuple[torch.Tensor] | List[torch.Tensor],
+        batch_idx: int
+    ):
         x, y = batch
         logits = self.backbone(x)
         loss = self.cross_entropy_loss(logits, y)
         self.log('train_loss', loss)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(
+        self,
+        batch: torch.Tensor | Tuple[torch.Tensor] | List[torch.Tensor],
+        batch_idx: int
+    ):
         x, y = batch
         logits = self.backbone(x)
         loss = self.cross_entropy_loss(logits, y)
         self.log('val_loss', loss)
 
-    def test_step(self, batch, batch_idx):
+    def test_step(
+        self,
+        batch: torch.Tensor | Tuple[torch.Tensor] | List[torch.Tensor],
+        batch_idx: int
+    ):
         x, y = batch
         logits = self.backbone(x)
         loss = self.cross_entropy_loss(logits, y)
