@@ -1,18 +1,19 @@
 from argparse import ArgumentParser
-from model import LightningMNISTClassifier
-from data import MNISTDataModule
+
 import pytorch_lightning as pl
 import torch
-
+from data import MNISTDataModule
+from model import LightningMNISTClassifier
 
 if __name__ == '__main__':
     parser = ArgumentParser()
+    parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--batch_size', default=64, type=int)
     parser.add_argument('--max_epochs', default=5, type=int)
     parser.add_argument('--gpus', default=None, type=int)
     args = parser.parse_args()
 
-    model = LightningMNISTClassifier()
+    model = LightningMNISTClassifier(lr=args.lr)
     mnist_data = MNISTDataModule()
 
     gpus = args.gpus if torch.cuda.is_available() else None

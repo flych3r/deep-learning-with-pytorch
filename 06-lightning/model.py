@@ -40,15 +40,15 @@ class MNISTClassifier(nn.Module):
 
 class LightningMNISTClassifier(pl.LightningModule):
 
-    def __init__(self, backbone=None):
+    def __init__(self, backbone=None, lr=1e-3):
         super().__init__()
         if backbone is None:
             backbone = MNISTClassifier()
         self.backbone = backbone
+        self.lr = lr
 
-    def configure_optimizers(self):
-        optim = optimizer.Adam(self.parameters(), lr=1e-3)
-        return optim
+    def forward(self, x):
+        return self.backbone(x)
 
     def cross_entropy_loss(self, logits, labels):
         return F.nll_loss(logits, labels)
@@ -73,3 +73,7 @@ class LightningMNISTClassifier(pl.LightningModule):
         labels_hat = torch.argmax(logits, dim=1)
         test_acc = torch.sum(y == labels_hat).item() / (len(y) * 1.0)
         self.log_dict({'test_loss': loss, 'test_acc': test_acc})
+
+    def configure_optimizers(self):
+        optim = optimizer.Adam(self.parameters(), lr=self.lr)
+        return optim
